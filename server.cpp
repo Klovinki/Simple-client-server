@@ -85,13 +85,13 @@ int main(int argc, char *argv[])
             cout << "Client has quit the session" << endl;
             break;
         }
-        else if(!strcmp(msg, "nama"))
+        else if(!strcmp(msg, "Klovinki Purnama"))
         {
             memset(&msg, 0, sizeof(msg)); //clear the buffer
             data = "Zaky Hermawan";
             strcpy(msg, data.c_str());
         }
-        else if(!strcmp(msg, "nim"))
+        else if(!strcmp(msg, "13222119"))
         {
             memset(&msg, 0, sizeof(msg)); //clear the buffer
             data = "13220022";
