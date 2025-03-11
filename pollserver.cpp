@@ -18,7 +18,7 @@
 #include <memory>
 using namespace std;
 
-#define MAX_CLIENTS  1
+#define MAX_CLIENTS  1000
 #define MAX_BUFF_SIZE 2048
 
 class Server
@@ -122,6 +122,7 @@ public:
                 {
                     cerr << "Error: Maximum number of client reached, no new client being connected\n";
                     close(newSd);
+                    continue;
                 }
 
                 // find for empty/unused file descriptor
@@ -163,13 +164,13 @@ public:
                     }
                     else if (bufSize == 0)
                     {
-                        cout << "FIN received";
+                        cout << "FIN received\n";
                         // client send FIN
                         m_pollfds[i].fd = 0;
                         m_pollfds[i].events = 0;
                         m_pollfds[i].revents = 0;
                         m_clientNum--;
-                        cout << "Client end\n";
+                        cout << "A client conenction closed\n";
                         continue;
                     }
 
@@ -182,7 +183,7 @@ public:
                         m_pollfds[i].events = 0;
                         m_pollfds[i].revents = 0;
                         m_clientNum--;
-                        cout << "Client end\n";
+                        cout << "A client conenction closed\n";
                         continue;
                     }
                     else if(!strcmp(buf, "Klovinki Purnama"))
@@ -250,7 +251,11 @@ int main(int argc, char *argv[])
         cerr << "Usage: port" << endl;
         exit(0);
     }
+
+    // catch termination signal (CTRL + C/Z)
     signal(SIGINT, signal_handler);
+    signal(SIGTSTP, signal_handler);
+
     server = std::make_unique<Server>(argv[1]);
 
     server->serverListen();
