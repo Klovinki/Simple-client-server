@@ -79,17 +79,30 @@ int main(int argc, char *argv[])
         cout << "Awaiting client response..." << endl;
         memset(&msg, 0, sizeof(msg));//clear the buffer
         bytesRead += recv(newSd, (char*)&msg, sizeof(msg), 0);
+        string data;
         if(!strcmp(msg, "exit"))
         {
             cout << "Client has quit the session" << endl;
             break;
         }
-        cout << "Client: " << msg << endl;
-        cout << ">";
-        string data;
-        getline(cin, data);
-        memset(&msg, 0, sizeof(msg)); //clear the buffer
-        strcpy(msg, data.c_str());
+        else if(!strcmp(msg, "nama"))
+        {
+            memset(&msg, 0, sizeof(msg)); //clear the buffer
+            data = "Zaky Hermawan";
+            strcpy(msg, data.c_str());
+        }
+        else if(!strcmp(msg, "nim"))
+        {
+            memset(&msg, 0, sizeof(msg)); //clear the buffer
+            data = "13220022";
+            strcpy(msg, data.c_str());
+        }
+        else
+        {
+            memset(&msg, 0, sizeof(msg)); //clear the buffer
+            data = "Pesan tidak dikenali";
+            strcpy(msg, data.c_str());
+        }
         if(data == "exit")
         {
             //send to the client that server has closed the connection
