@@ -8,6 +8,6 @@ Server:
 `./server 1234`
 
 Client:
-`python client.py localhost 12345`
+`python client.py localhost 1234`
 
 You can change `1234` with any port
