@@ -1,68 +1,79 @@
 import socket
 import sys
+import select
+import threading
 
-def main():
-    # Check command line arguments
-    if len(sys.argv) != 3:
-        print("Usage: python client.py <server_ip> <port>")
-        sys.exit(1)
-    
-    # Get server IP and port from command line
-    server_ip = sys.argv[1]
-    port = int(sys.argv[2])
-    
-    # Create socket
+class ClientStats:
+    def __init__(self):
+        self.bytes_sent = 0
+        self.bytes_received = 0
+
+def receive_messages(client_socket,stats, disconnect):
+    while not disconnect.is_set():
+        try:
+            response = client_socket.recv(1024).decode().strip()
+            if not response:
+                print("\n[INFO] Connection closed by server.")
+                disconnect.set()
+                break
+            print(f"Server: {response}\n")
+            stats.bytes_received += len(response)
+        except (ConnectionResetError, OSError):
+            print("\n[INFO] Connection lost while receiving.")
+            disconnect.set()
+            break
+
+def start_client(host="localhost", port=12345):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
     try:
-        # Connect to the server
-        print(f"Attempting to connect to {server_ip}:{port}...")
-        client_socket.connect((server_ip, port))
+        client_socket.connect((host, port))
+        print(f"Connecting to {host}:{port}...")
         print("Connected to server!")
-        
-        # Track data sent and received
-        bytes_written = 0
-        bytes_read = 0
-        
-        # Main communication loop
-        while True:
-            # Get user input
-            message = input("> ")
-            
-            # Send message to server
-            client_socket.sendall(message.encode())
-            bytes_written += len(message)
-            
-            # Check if client wants to exit
-            if message == "exit":
-                print("Closing connection with server...")
+
+        stats = ClientStats()
+        disconnect = threading.Event()
+
+        # Start a thread for receiving messages
+        receive_thread = threading.Thread(target=receive_messages, args=(client_socket,stats, disconnect))
+        receive_thread.daemon = True
+        receive_thread.start()
+
+        while not disconnect.is_set():
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.5)
+            if disconnect.is_set():
                 break
-            
-            # Receive response from server
-            buffer_size = 1500  # Same as server's msg array size
-            data = client_socket.recv(buffer_size)
-            bytes_read += len(data)
-            
-            # Decode and print the server's response
-            server_message = data.decode().strip()
-            print(f"Server: {server_message}")
-            
-            # Check if server wants to exit
-            if server_message == "exit":
-                print("Server has closed the connection")
-                break
-    
-    except ConnectionRefusedError:
-        print("Failed to connect to the server. Make sure it's running and the port is correct.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    
-    finally:
-        # Close the connection
+
+            if rlist:
+                message = sys.stdin.readline().strip()
+                if message.lower() == "exit":
+                    print("Closing connection with server...")
+                    disconnect.set()
+                    break
+
+                print(f"> {message}")  # Proper format for user input
+                
+                if disconnect.is_set() or client_socket.fileno() == -1:
+                    print("\n[ERROR] Socket is closed, exiting...")
+                    break
+
+                try:
+                    client_socket.sendall(message.encode())
+                    stats.bytes_sent += len(message)
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    print("\n[INFO] Connection lost while sending.")
+                    disconnect.set()
+                    break
+
         client_socket.close()
-        print("Connection closed")
+        print("\nConnection closed")
         print("********Session Summary********")
-        print(f"Bytes written: {bytes_written} Bytes read: {bytes_read}")
+        print(f"Bytes written: {stats.bytes_sent} Bytes read: {stats.bytes_received}")
+
+    except ConnectionRefusedError:
+        print("[ERROR] Unable to connect to the server.")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 3:
+        print("Usage: python client.py <host> <port>")
+    else:
+        start_client(sys.argv[1], int(sys.argv[2]))
