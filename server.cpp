@@ -44,6 +44,14 @@ int main(int argc, char *argv[])
         cerr << "Error establishing the server socket" << endl;
         exit(0);
     }
+
+    // allow server to reuse address
+    const int enable = 1;
+    if (setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    {
+        perror("setsockopt(SO_REUSEADDR) failed");
+    }
+
     //bind the socket to its local address
     int bindStatus = bind(serverSd, (struct sockaddr*) &servAddr, 
         sizeof(servAddr));
@@ -112,6 +120,7 @@ int main(int argc, char *argv[])
         //send the message to client
         bytesWritten += send(newSd, (char*)&msg, strlen(msg), 0);
     }
+
     //we need to close the socket descriptors after we're all done
     gettimeofday(&end1, NULL);
     close(newSd);
